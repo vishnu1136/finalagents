@@ -23,7 +23,28 @@ async def run_node(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Generate a comprehensive answer using OpenAI
     try:
-        client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            # Fallback to simple concatenation
+            answer_parts = []
+            answer_parts.append(f"I found {len(results)} relevant documents for your query: '{query}'")
+            
+            if results:
+                answer_parts.append("\nHere are the relevant sources:\n")
+                for i, result in enumerate(results[:10], 1):
+                    title = result.get("title", "Unknown Document")
+                    snippet = result.get("snippet", "")
+                    answer_parts.append(f"{i}. {title}")
+                    if snippet:
+                        answer_parts.append(f"   {snippet[:100]}...")
+                    answer_parts.append("")
+            
+            return {
+                "answer": "\n".join(answer_parts),
+                "results": results
+            }
+        
+        client = openai.AsyncOpenAI(api_key=api_key)
         
         # Customize system prompt based on query type
         if is_broad_subject:

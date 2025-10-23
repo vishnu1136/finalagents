@@ -4,8 +4,8 @@ from api.integrations.mcp_client import GDriveMCPClient
 
 async def run_node(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Direct Google Drive search using built-in fullText search without downloading files.
-    This leverages Google Drive's indexing and relevance scoring for fast, always-current results.
+    Direct Google Drive search node that uses Google Drive's built-in fullText search
+    without downloading any files. This leverages Google Drive's indexing and relevance scoring.
     """
     query = inputs.get("normalized_query") or inputs.get("query")
     if not query:
@@ -14,7 +14,7 @@ async def run_node(inputs: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Performing direct Google Drive search for: '{query}'")
     
     try:
-        # Use Google Drive's built-in fullText search (no downloads needed)
+        # Use Google Drive's built-in fullText search
         client = GDriveMCPClient()
         files = await client.list_files(query=query)
         

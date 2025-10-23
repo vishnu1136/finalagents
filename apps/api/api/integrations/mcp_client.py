@@ -14,7 +14,8 @@ class GDriveMCPClient:
         self.client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         self.refresh_token = os.getenv("GOOGLE_REFRESH_TOKEN")
-        self.folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+        # Optional folder ID to limit search scope
+        self.folder_id = os.getenv("GDRIVE_FOLDER_ID")
 
     async def _get_access_token(self) -> Optional[str]:
         if not (self.client_id and self.client_secret and self.refresh_token):
@@ -64,13 +65,19 @@ class GDriveMCPClient:
         elif self.api_key:
             params["key"] = self.api_key
         else:
+            print(f"Google Drive: No authentication available (api_key: {bool(self.api_key)}, access_token: {bool(access_token)})")
             return []
+
+        print(f"Google Drive search query: {params['q']}")
+        print(f"Google Drive auth method: {'OAuth' if access_token else 'API Key' if self.api_key else 'None'}")
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.get(f"{GDRIVE_API_BASE}/files", params=params, headers=headers)
             r.raise_for_status()
             data = r.json()
-            return data.get("files", [])
+            files = data.get("files", [])
+            print(f"Google Drive returned {len(files)} files")
+            return files
 
     async def get_file(self, file_id: str) -> Dict[str, Any]:
         access_token = await self._get_access_token()
@@ -104,7 +111,13 @@ class GDriveMCPClient:
                             headers=headers,
                         )
                         resp.raise_for_status()
-                        return {"file_id": file_id, "text": resp.text, "meta": m}
+                        text = resp.text
+                        
+                        # Sanitize text to remove null bytes and control characters
+                        import re
+                        text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+                        
+                        return {"file_id": file_id, "text": text, "meta": m}
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 403:
                             print(f"Warning: Cannot access Google Doc {file_id} - permission denied")
@@ -120,6 +133,11 @@ class GDriveMCPClient:
                     )
                     resp.raise_for_status()
                     text = resp.text
+                    
+                    # Sanitize text to remove null bytes and control characters
+                    import re
+                    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+                    
                     return {"file_id": file_id, "text": text, "meta": m}
                 except httpx.HTTPStatusError as e:
                     if e.response.status_code == 403:

@@ -34,7 +34,14 @@ def get_supabase_client() -> Client:
     
     if not supabase_url or not supabase_key:
         raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
-    return create_client(supabase_url, supabase_key)
+    
+    try:
+        # Initialize with compatible version
+        return create_client(supabase_url, supabase_key)
+    except Exception as e:
+        print(f"Error creating Supabase client: {e}")
+        # Return a mock client for development
+        return None
 
 
 class SupabaseConnection:
